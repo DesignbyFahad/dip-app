@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "start": "vite --host 0.0.0.0",
+    "build": "node scripts/build.mjs",
+    "check": "node --check src/main.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "vite": "^6.4.3"
+  }
+}
