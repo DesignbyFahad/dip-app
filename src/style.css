@@ -5,6 +5,7 @@
 body { margin:0; background:var(--ink); color:var(--ink); font:14px Manrope, sans-serif; }
 header { height:58px; display:flex; align-items:center; gap:18px; padding:0 24px; color:var(--paper); font-weight:700; }
 .mark { color:var(--lime); font:500 18px 'DM Mono', monospace; }
+.save-state { color:#aab7a7; font:10px 'DM Mono', monospace; }
 header button { margin-left:auto; }
 button { border:1px solid var(--ink); background:transparent; padding:10px 12px; font:700 12px Manrope, sans-serif; cursor:pointer; }
 button:disabled { cursor:not-allowed; opacity:.45; }
@@ -19,6 +20,9 @@ textarea { height:110px; resize:vertical; }
 .measure { display:flex; gap:10px; }
 .measure label { width:50%; }
 section section { margin-top:32px; }
+.asset-entry { display:flex; gap:8px; align-items:end; }
+.asset-entry input { margin:0; }
+.asset-entry button { flex:none; }
 ul { padding:0; list-style:none; line-height:2; }
 .muted { color:#79817e; }
 li b { float:right; color:#2e755b; font:10px 'DM Mono', monospace; }

@@ -1,16 +1,31 @@
 import './style.css';
 
 const app = document.querySelector('#app');
-const state = {
+const storageKey = 'dip-packaging-job-v1';
+const defaultState = {
   name: 'Luma Botanics - Restore Shampoo',
   brief: '',
   bleed: 3,
   safe: 5,
   assets: [],
+  assetDraft: '',
   printProcess: '',
   plan: null,
   notice: 'Add the job facts, then generate a composition plan.',
 };
+let state = { ...defaultState };
+
+try {
+  const saved = JSON.parse(localStorage.getItem(storageKey));
+  if (saved && typeof saved === 'object') {
+    state = { ...defaultState, ...saved, assets: Array.isArray(saved.assets) ? saved.assets : [] };
+    state.notice = 'Restored the last saved job from this browser.';
+  }
+} catch {
+  localStorage.removeItem(storageKey);
+}
+
+const saveState = () => localStorage.setItem(storageKey, JSON.stringify({ ...state, savedAt: new Date().toISOString() }));
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
@@ -35,6 +50,8 @@ const render = () => {
     <header>
       <span class="mark">DIP</span>
       <span>Packaging job / ${escapeHtml(state.name)}</span>
+      <span class="save-state">Saved locally</span>
+      <button id="reset">New job</button>
       <button id="export" ${ready ? '' : 'disabled'}>Export package</button>
     </header>
     <main>
@@ -57,7 +74,7 @@ const render = () => {
         <button class="primary" id="plan">Generate composition plan</button>
         <section>
           <p class="eyebrow">ASSETS</p>
-          <button id="asset">+ Add approved asset</button>
+          <div class="asset-entry"><input id="assetDraft" value="${escapeHtml(state.assetDraft)}" placeholder="Asset name"><button id="asset">Add</button></div>
           <ul>${state.assets.map((asset) => `<li>${asset} <b>approved</b></li>`).join('') || '<li class="muted">No approved assets yet</li>'}</ul>
         </section>
       </aside>
@@ -77,30 +94,65 @@ const render = () => {
 
 document.addEventListener('input', (event) => {
   const { id, value, type } = event.target;
-  if (id in state) state[id] = type === 'number' ? Number(value) : value;
+  if (id in state) {
+    state[id] = type === 'number' ? Number(value) : value;
+    saveState();
+  }
 });
 
 document.addEventListener('change', (event) => {
   const { id, value, type } = event.target;
   if (id in state) state[id] = type === 'number' ? Number(value) : value;
+  saveState();
   render();
 });
 
 document.addEventListener('click', (event) => {
-  if (event.target.id === 'asset') {
-    state.assets.push(state.assets.length ? 'Product image' : 'Primary logo');
-    state.notice = 'Asset added. Approve the remaining job requirements.';
+  const action = event.target.id;
+  if (!['asset', 'plan', 'export', 'reset'].includes(action)) return;
+
+  if (action === 'asset') {
+    const asset = state.assetDraft.trim();
+    if (asset) {
+      state.assets.push(asset);
+      state.assetDraft = '';
+      state.notice = 'Approved asset recorded.';
+    } else {
+      state.notice = 'Name the asset before adding it to the job.';
+    }
   }
 
-  if (event.target.id === 'plan') {
+  if (action === 'plan') {
     state.plan = 'Hero claim leads in the upper third; a restrained botanical field supports premium efficacy; the logo anchors trust at the top.';
     state.notice = 'Composition plan generated.';
   }
 
-  if (event.target.id === 'export') {
-    state.notice = 'Export package queued for human approval.';
+  if (action === 'export') {
+    const exportPackage = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      job: { name: state.name, brief: state.brief },
+      production: { bleedMm: state.bleed, safeAreaMm: state.safe, printProcess: state.printProcess },
+      approvedAssets: state.assets,
+      compositionPlan: state.plan,
+      checks: getChecks(),
+    };
+    const file = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'dip-job'}-export.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    state.notice = 'Production package downloaded. Human approval remains required before release.';
   }
 
+  if (action === 'reset') {
+    state = { ...defaultState, notice: 'New packaging job started.' };
+    localStorage.removeItem(storageKey);
+  }
+
+  saveState();
   render();
 });
 
