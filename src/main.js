@@ -5,6 +5,10 @@ const storageKey = 'dip-packaging-job-v1';
 const defaultState = {
   name: 'Luma Botanics - Restore Shampoo',
   brief: '',
+  brand: 'Luma Botanics',
+  product: 'Restore',
+  descriptor: 'Botanical repair shampoo',
+  volume: '400 ml',
   bleed: 3,
   safe: 5,
   assets: [],
@@ -40,6 +44,26 @@ const getChecks = () => [
   ['Composition plan approved', Boolean(state.plan)],
 ];
 
+const getVectorDocument = () => `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 75" role="img" aria-label="${escapeHtml(state.product)} packaging artwork">
+  <rect width="180" height="75" fill="#e8eed5"/>
+  <rect x="3" y="3" width="174" height="69" fill="none" stroke="#355f52" stroke-width="0.7"/>
+  <text x="14" y="15" fill="#17201e" font-family="monospace" font-size="4" font-weight="700" letter-spacing="0.8">${escapeHtml(state.brand.toUpperCase())}</text>
+  <text x="14" y="42" fill="#17201e" font-family="serif" font-size="24" font-weight="800">${escapeHtml(state.product.toUpperCase())}</text>
+  <text x="14" y="51" fill="#17201e" font-family="sans-serif" font-size="4">${escapeHtml(state.descriptor)}</text>
+  <text x="148" y="64" fill="#17201e" font-family="monospace" font-size="4">${escapeHtml(state.volume)}</text>
+</svg>`;
+
+const downloadFile = (contents, name, type) => {
+  const file = new Blob([contents], { type });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const render = () => {
   const checks = getChecks();
   const passed = checks.filter(([, isReady]) => isReady).length;
@@ -59,6 +83,10 @@ const render = () => {
         <p class="eyebrow">JOB INPUTS</p>
         <label>Job name<input id="name" value="${escapeHtml(state.name)}"></label>
         <label>Creative brief<textarea id="brief" placeholder="Premium retail shampoo. Restore ritual, botanical efficacy, and a modern premium voice.">${escapeHtml(state.brief)}</textarea></label>
+        <label>Brand<input id="brand" value="${escapeHtml(state.brand)}"></label>
+        <label>Product name<input id="product" value="${escapeHtml(state.product)}"></label>
+        <label>Descriptor<input id="descriptor" value="${escapeHtml(state.descriptor)}"></label>
+        <label>Net volume<input id="volume" value="${escapeHtml(state.volume)}"></label>
         <div class="measure">
           <label>Bleed (mm)<input id="bleed" type="number" min="0" value="${state.bleed}"></label>
           <label>Safe area (mm)<input id="safe" type="number" min="0" value="${state.safe}"></label>
@@ -80,7 +108,7 @@ const render = () => {
       </aside>
       <section class="canvas">
         <div class="canvasbar"><span>FRONT PANEL / 180 x 75 mm</span><span class="pass">VECTOR READY</span></div>
-        <div class="pack"><div class="trim"><div class="safe"><span class="logo">LUMA<br>BOTANICS</span><h1>RESTORE</h1><p>Botanical repair shampoo</p><i>400 ml</i></div></div></div>
+        <div class="pack">${getVectorDocument()}</div>
         <p class="caption">Locked dieline - trim, bleed, and safe area shown</p>
       </section>
       <aside class="review">
@@ -136,14 +164,11 @@ document.addEventListener('click', (event) => {
       approvedAssets: state.assets,
       compositionPlan: state.plan,
       checks: getChecks(),
+      vectorDocumentSvg: getVectorDocument(),
     };
-    const file = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${state.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'dip-job'}-export.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const fileStem = state.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'dip-job';
+    downloadFile(JSON.stringify(exportPackage, null, 2), `${fileStem}-export.json`, 'application/json');
+    downloadFile(getVectorDocument(), `${fileStem}-artwork.svg`, 'image/svg+xml');
     state.notice = 'Production package downloaded. Human approval remains required before release.';
   }
 
