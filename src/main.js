@@ -50,6 +50,13 @@ const getChecks = () => [
   ['Composition plan approved', Boolean(state.plan)],
 ];
 
+const generateCompositionPlan = () => {
+  const brief = state.brief.trim() || 'the product’s stated benefit';
+  const process = state.printProcess || 'the selected print process';
+  const assets = state.assets.map((asset) => asset.type).join(' and ') || 'pending approved assets';
+  return `${state.product} leads the front panel as the primary recognition cue. ${state.brand} anchors trust in the upper field; the descriptor supports ${brief}. Build the layout for ${process}, using ${assets} as the approved visual evidence. Keep the net volume quiet at the lower edge and preserve the declared safe area for mandatory copy.`;
+};
+
 const getVectorDocument = () => `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 75" role="img" aria-label="${escapeHtml(state.product)} packaging artwork">
   <rect width="180" height="75" fill="#e8eed5"/>
@@ -164,7 +171,7 @@ document.addEventListener('click', (event) => {
   }
 
   if (action === 'plan') {
-    state.plan = 'Hero claim leads in the upper third; a restrained botanical field supports premium efficacy; the logo anchors trust at the top.';
+    state.plan = generateCompositionPlan();
     state.notice = 'Composition plan generated.';
   }
 
