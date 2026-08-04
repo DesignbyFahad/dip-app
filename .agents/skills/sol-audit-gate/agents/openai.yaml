@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sol Audit Gate"
+  short_description: "Install a mandatory AI commit audit gate"
+  default_prompt: "Use $sol-audit-gate to install the configured pre-commit audit gate."

@@ -1,0 +1,8 @@
+{
+  "reviewer_route": "native-sol",
+  "model": "gpt-5.6-sol",
+  "audit_scope": "all non-document changes",
+  "context_contract": "PROGRESS.md plus CONTEXT.md",
+  "threat_model": "practical-local-snapshot",
+  "api_key_environment_variable": null
+}

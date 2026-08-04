@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# DIP-SOL-GATE template. setup_git_hooks.py installs the active copy.
+set -eu
+gate="$(git rev-parse --git-common-dir)/dip-sol-gate/context_gate.py"
+python3 "$gate" 2>/dev/null || py -3 "$gate"
