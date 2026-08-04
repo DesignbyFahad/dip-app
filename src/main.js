@@ -13,6 +13,8 @@ const defaultState = {
   safe: 5,
   assets: [],
   assetDraft: '',
+  assetType: 'Logo',
+  assetSource: '',
   printProcess: '',
   plan: null,
   notice: 'Add the job facts, then generate a composition plan.',
@@ -22,7 +24,11 @@ let state = { ...defaultState };
 try {
   const saved = JSON.parse(localStorage.getItem(storageKey));
   if (saved && typeof saved === 'object') {
-    state = { ...defaultState, ...saved, assets: Array.isArray(saved.assets) ? saved.assets : [] };
+    state = {
+      ...defaultState,
+      ...saved,
+      assets: Array.isArray(saved.assets) ? saved.assets.map((asset) => typeof asset === 'string' ? { name: asset, type: 'Artwork', source: '' } : asset) : [],
+    };
     state.notice = 'Restored the last saved job from this browser.';
   }
 } catch {
@@ -39,7 +45,7 @@ const getChecks = () => [
   ['Editable text preserved', true],
   [`Bleed is ${state.bleed} mm (minimum 3 mm)`, state.bleed >= 3],
   [`Safe area is ${state.safe} mm (minimum 5 mm)`, state.safe >= 5],
-  ['Primary logo and product asset approved', state.assets.length >= 2],
+  ['Approved logo and product artwork recorded', state.assets.some((asset) => asset.type === 'Logo') && state.assets.some((asset) => asset.type === 'Product artwork')],
   ['Print process selected', Boolean(state.printProcess)],
   ['Composition plan approved', Boolean(state.plan)],
 ];
@@ -102,8 +108,8 @@ const render = () => {
         <button class="primary" id="plan">Generate composition plan</button>
         <section>
           <p class="eyebrow">ASSETS</p>
-          <div class="asset-entry"><input id="assetDraft" value="${escapeHtml(state.assetDraft)}" placeholder="Asset name"><button id="asset">Add</button></div>
-          <ul>${state.assets.map((asset) => `<li>${asset} <b>approved</b></li>`).join('') || '<li class="muted">No approved assets yet</li>'}</ul>
+          <div class="asset-entry"><input id="assetDraft" value="${escapeHtml(state.assetDraft)}" placeholder="Asset name"><select id="assetType"><option ${state.assetType === 'Logo' ? 'selected' : ''}>Logo</option><option ${state.assetType === 'Product artwork' ? 'selected' : ''}>Product artwork</option><option ${state.assetType === 'Reference' ? 'selected' : ''}>Reference</option></select><input id="assetSource" value="${escapeHtml(state.assetSource)}" placeholder="Source / rights note"><button id="asset">Add</button></div>
+          <ul>${state.assets.map((asset, index) => `<li><span>${escapeHtml(asset.name)} <em>${escapeHtml(asset.type)}</em><small>${escapeHtml(asset.source || 'Source not recorded')}</small></span><button class="remove" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(asset.name)}">Remove</button></li>`).join('') || '<li class="muted">No approved assets yet</li>'}</ul>
         </section>
       </aside>
       <section class="canvas">
@@ -137,13 +143,20 @@ document.addEventListener('change', (event) => {
 
 document.addEventListener('click', (event) => {
   const action = event.target.id;
-  if (!['asset', 'plan', 'export', 'reset'].includes(action)) return;
+  const removeIndex = event.target.dataset.removeAsset;
+  if (!['asset', 'plan', 'export', 'reset'].includes(action) && removeIndex === undefined) return;
+
+  if (removeIndex !== undefined) {
+    state.assets.splice(Number(removeIndex), 1);
+    state.notice = 'Asset removed from the job.';
+  }
 
   if (action === 'asset') {
     const asset = state.assetDraft.trim();
     if (asset) {
-      state.assets.push(asset);
+      state.assets.push({ name: asset, type: state.assetType, source: state.assetSource.trim() });
       state.assetDraft = '';
+      state.assetSource = '';
       state.notice = 'Approved asset recorded.';
     } else {
       state.notice = 'Name the asset before adding it to the job.';

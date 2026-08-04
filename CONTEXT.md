@@ -1,6 +1,6 @@
 # DIP application context
 
-This repository contains the Packaging MVP for Design Intelligence Platform. It converts structured packaging-job inputs into a production-readiness review, an editable SVG artwork document, and exportable job data.
+This repository contains the Packaging MVP for Design Intelligence Platform. It converts structured packaging-job inputs, provenance-aware assets, a production-readiness review, an editable SVG artwork document, and exportable job data.
 
 Current technical shape: a dependency-light browser application built with vanilla JavaScript and esbuild. It persists the current job in browser storage only; no user data is sent to a server.
 
