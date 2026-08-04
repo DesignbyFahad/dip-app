@@ -1,7 +1,9 @@
 import './style.css';
 
 const app = document.querySelector('#app');
-const storageKey = 'dip-packaging-job-v1';
+const workspaceKey = 'dip-packaging-workspace-v2';
+const legacyStorageKey = 'dip-packaging-job-v1';
+const legacyLibraryKey = 'dip-packaging-library-v1';
 const defaultState = {
   name: 'Luma Botanics - Restore Shampoo',
   brief: '',
@@ -19,23 +21,54 @@ const defaultState = {
   plan: null,
   notice: 'Add the job facts, then generate a composition plan.',
 };
-let state = { ...defaultState };
+const newId = () => `job-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const normalizeJob = (job) => {
+  if (!job || typeof job !== 'object' || Array.isArray(job)) return null;
+  return {
+    ...defaultState,
+    ...job,
+    id: typeof job.id === 'string' && job.id ? job.id : newId(),
+    assets: Array.isArray(job.assets) ? job.assets.map((asset) => typeof asset === 'string' ? { name: asset, type: 'Artwork', source: '' } : asset).filter((asset) => asset && typeof asset === 'object').map((asset) => ({ name: String(asset.name || 'Untitled asset'), type: String(asset.type || 'Reference'), source: String(asset.source || '') })) : [],
+  };
+};
+let state = { ...defaultState, id: newId() };
+let library = [];
 
 try {
-  const saved = JSON.parse(localStorage.getItem(storageKey));
-  if (saved && typeof saved === 'object') {
-    state = {
-      ...defaultState,
-      ...saved,
-      assets: Array.isArray(saved.assets) ? saved.assets.map((asset) => typeof asset === 'string' ? { name: asset, type: 'Artwork', source: '' } : asset) : [],
-    };
-    state.notice = 'Restored the last saved job from this browser.';
-  }
-} catch {
-  localStorage.removeItem(storageKey);
-}
+  const workspace = JSON.parse(localStorage.getItem(workspaceKey));
+  library = Array.isArray(workspace?.jobs) ? workspace.jobs.map(normalizeJob).filter(Boolean).slice(0, 12) : [];
+  state = library.find((job) => job.id === workspace?.activeId) || library[0] || state;
+} catch { /* Browser storage can be unavailable in private or restricted contexts. */ }
 
-const saveState = () => localStorage.setItem(storageKey, JSON.stringify({ ...state, savedAt: new Date().toISOString() }));
+if (!library.length) {
+  try {
+    const legacyJobs = JSON.parse(localStorage.getItem(legacyLibraryKey));
+    const legacyActive = normalizeJob(JSON.parse(localStorage.getItem(legacyStorageKey)));
+    library = (Array.isArray(legacyJobs) ? legacyJobs.map(normalizeJob).filter(Boolean) : []).slice(0, 12);
+    if (legacyActive && !library.some((job) => job.id === legacyActive.id) && library.length < 12) library.unshift(legacyActive);
+    state = library.find((job) => job.id === legacyActive?.id) || library[0] || state;
+    if (legacyActive && state.id !== legacyActive.id) state.notice = 'The legacy library was already full, so the oldest saved job remains active.';
+  } catch { /* Start a fresh workspace when legacy storage is malformed. */ }
+}
+library = [{ ...state, assets: state.assets.map((asset) => ({ ...asset })) }, ...library.filter((job) => job.id !== state.id)].slice(0, 12);
+const saveWorkspace = () => localStorage.setItem(workspaceKey, JSON.stringify({ activeId: state.id, jobs: library }));
+try { saveWorkspace(); } catch { /* The workspace remains usable when browser storage is unavailable. */ }
+const saveState = () => {
+  const saved = { ...state, savedAt: new Date().toISOString() };
+  const exists = library.some((job) => job.id === state.id);
+  if (!exists && library.length >= 12) {
+    state.notice = 'Job library is full (12 jobs). Remove or export a job before saving another.';
+    return;
+  }
+  const nextLibrary = [saved, ...library.filter((job) => job.id !== state.id)];
+  try {
+    state.savedAt = saved.savedAt;
+    library = nextLibrary;
+    saveWorkspace();
+  } catch {
+    state.notice = 'Local storage is full. Your latest change is still open but was not saved.';
+  }
+};
 
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
@@ -88,6 +121,9 @@ const render = () => {
       <span class="mark">DIP</span>
       <span>Packaging job / ${escapeHtml(state.name)}</span>
       <span class="save-state">Saved locally</span>
+      <select id="jobLibrary" aria-label="Saved jobs"><option value="">Saved jobs</option>${library.map((job) => `<option value="${escapeHtml(job.id)}" ${job.id === state.id ? 'selected' : ''}>${escapeHtml(job.name)}</option>`).join('')}</select>
+      <button id="duplicate">Duplicate</button>
+      <button id="deleteJob">Remove job</button>
       <button id="reset">New job</button>
       <button id="export" ${ready ? '' : 'disabled'}>Export package</button>
     </header>
@@ -143,15 +179,53 @@ document.addEventListener('input', (event) => {
 
 document.addEventListener('change', (event) => {
   const { id, value, type } = event.target;
-  if (id in state) state[id] = type === 'number' ? Number(value) : value;
-  saveState();
+  let openedJob = false;
+  if (id === 'jobLibrary' && value) {
+    state = { ...defaultState, ...library.find((job) => job.id === value), notice: 'Saved job opened.' };
+    openedJob = true;
+    try { saveWorkspace(); } catch { state.notice = 'Job opened, but browser storage could not update the active record.'; }
+  }
+  else if (id in state) state[id] = type === 'number' ? Number(value) : value;
+  if (!openedJob) saveState();
   render();
 });
 
 document.addEventListener('click', (event) => {
   const action = event.target.id;
   const removeIndex = event.target.dataset.removeAsset;
-  if (!['asset', 'plan', 'export', 'reset'].includes(action) && removeIndex === undefined) return;
+  if (!['asset', 'plan', 'export', 'reset', 'duplicate', 'deleteJob'].includes(action) && removeIndex === undefined) return;
+
+  if (action === 'deleteJob') {
+    if (!library.some((job) => job.id === state.id)) {
+      state.notice = 'This job has not been saved. Add capacity before creating another job.';
+      render();
+      return;
+    }
+    if (library.length <= 1) {
+      state.notice = 'Keep at least one job in the local library.';
+    } else {
+      const nextLibrary = library.filter((job) => job.id !== state.id);
+      const nextState = { ...defaultState, ...nextLibrary[0], notice: 'Job removed from the local library.' };
+      try {
+        localStorage.setItem(workspaceKey, JSON.stringify({ activeId: nextState.id, jobs: nextLibrary }));
+        library = nextLibrary;
+        state = nextState;
+      } catch {
+        state.notice = 'Could not remove this job because local storage is unavailable.';
+      }
+      render();
+      return;
+    }
+  }
+
+  if (action === 'duplicate') {
+    if (library.length >= 12) {
+      state.notice = 'Job library is full (12 jobs). Remove a saved job before duplicating.';
+      render();
+      return;
+    }
+    state = { ...state, id: newId(), assets: state.assets.map((asset) => ({ ...asset })), name: `${state.name} copy`, notice: 'Job duplicated as a new local record.' };
+  }
 
   if (removeIndex !== undefined) {
     state.assets.splice(Number(removeIndex), 1);
@@ -193,8 +267,12 @@ document.addEventListener('click', (event) => {
   }
 
   if (action === 'reset') {
-    state = { ...defaultState, notice: 'New packaging job started.' };
-    localStorage.removeItem(storageKey);
+    if (library.length >= 12) {
+      state.notice = 'Job library is full (12 jobs). Remove a saved job before starting another.';
+      render();
+      return;
+    }
+    state = { ...defaultState, id: newId(), notice: 'New packaging job started.' };
   }
 
   saveState();

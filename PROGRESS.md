@@ -9,6 +9,7 @@
 - After committing any gate-source update, run `python scripts/setup_git_hooks.py` to refresh the active local copy.
 - Asset records now capture type and source and can be removed; the production gate requires both a logo and product artwork.
 - Composition guidance now uses the active job’s brief, product, process, and approved asset mix.
+- A local job library now supports saved-job switching and duplication.
 
 ## Next
 
