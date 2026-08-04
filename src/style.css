@@ -46,4 +46,6 @@ li em, li small { display:block; color:#66706d; font:10px 'DM Mono', monospace; 
 .checks .ok::before { content:'+'; margin-right:8px; color:#1d7051; }
 .checks .warn::before { content:'!'; margin-right:8px; color:var(--red); }
 article { margin-top:25px; padding-top:16px; border-top:1px solid var(--line); line-height:1.6; }
+.risks { margin:14px 0 0; border-top:1px solid var(--line); padding-top:10px; color:#7a473d; font-size:12px; line-height:1.45; }
+.risks li { margin-bottom:8px; }
 @media (max-width:900px) { main { grid-template-columns:1fr; } .canvas { order:-1; } aside, .review { border:0; border-top:1px solid var(--line); } .asset-entry { grid-template-columns:1fr 1fr; } }

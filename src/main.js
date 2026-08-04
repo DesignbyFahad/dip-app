@@ -1,5 +1,5 @@
 import './style.css';
-import { getProductionChecks } from './rules.js';
+import { getProductionChecks, getProductionRisks } from './rules.js';
 
 const app = document.querySelector('#app');
 const workspaceKey = 'dip-packaging-workspace-v2';
@@ -109,6 +109,7 @@ const render = () => {
   const passed = checks.filter(([, isReady]) => isReady).length;
   const score = Math.round((passed / checks.length) * 100);
   const ready = passed === checks.length;
+  const risks = getProductionRisks(state);
 
   app.innerHTML = `
     <header>
@@ -158,7 +159,7 @@ const render = () => {
         <p class="eyebrow">PRODUCTION REVIEW</p>
         <div class="score"><strong>${score}</strong><span>readiness score</span></div>
         <ul class="checks">${checks.map(([label, isReady]) => `<li class="${isReady ? 'ok' : 'warn'}">${label}</li>`).join('')}</ul>
-        <article><p class="eyebrow">${state.plan ? 'COMPOSITION PLAN' : 'NEXT ACTION'}</p><p>${escapeHtml(state.plan || state.notice)}</p></article>
+        <article><p class="eyebrow">${state.plan ? 'COMPOSITION PLAN' : 'NEXT ACTION'}</p><p>${escapeHtml(state.plan || state.notice)}</p>${risks.length ? `<ul class="risks">${risks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>` : '<p class="pass">No additional production risks detected.</p>'}</article>
       </aside>
     </main>`;
 };

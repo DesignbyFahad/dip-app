@@ -11,6 +11,7 @@
 - Composition guidance now uses the active job’s brief, product, process, and approved asset mix.
 - A local job library now supports saved-job switching and duplication.
 - Production-readiness rules are now extracted and covered by automated regression tests.
+- The review panel now provides actionable production-risk guidance alongside readiness checks.
 
 ## Next
 
