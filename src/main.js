@@ -1,4 +1,5 @@
 import './style.css';
+import { getProductionChecks } from './rules.js';
 
 const app = document.querySelector('#app');
 const workspaceKey = 'dip-packaging-workspace-v2';
@@ -74,14 +75,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => (
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
 })[character]);
 
-const getChecks = () => [
-  ['Editable text preserved', true],
-  [`Bleed is ${state.bleed} mm (minimum 3 mm)`, state.bleed >= 3],
-  [`Safe area is ${state.safe} mm (minimum 5 mm)`, state.safe >= 5],
-  ['Approved logo and product artwork recorded', state.assets.some((asset) => asset.type === 'Logo') && state.assets.some((asset) => asset.type === 'Product artwork')],
-  ['Print process selected', Boolean(state.printProcess)],
-  ['Composition plan approved', Boolean(state.plan)],
-];
+const getChecks = () => getProductionChecks(state);
 
 const generateCompositionPlan = () => {
   const brief = state.brief.trim() || 'the product’s stated benefit';

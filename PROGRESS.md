@@ -10,6 +10,7 @@
 - Asset records now capture type and source and can be removed; the production gate requires both a logo and product artwork.
 - Composition guidance now uses the active job’s brief, product, process, and approved asset mix.
 - A local job library now supports saved-job switching and duplication.
+- Production-readiness rules are now extracted and covered by automated regression tests.
 
 ## Next
 

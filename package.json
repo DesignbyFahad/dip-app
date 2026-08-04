@@ -1,8 +1,9 @@
 {
+  "type": "module",
   "scripts": {
     "start": "vite --host 0.0.0.0",
     "build": "node scripts/build.mjs",
-    "check": "node --check src/main.js"
+    "check": "node --check src/main.js && node scripts/test_production_rules.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.12",
